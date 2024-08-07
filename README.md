@@ -8,6 +8,11 @@ it will be removed in due time, when I make this thing actually public and docum
 I apologize to whoever is looking at the commit history for this accursed thing
 
 ### More fodder
-I am having a bit of a moment with git rn
-biiiiiit of a moment
+I am having a bit of a moment with git rn  
+biiiiiit of a moment  
 fuck my life
+
+### Pain
+suffering  
+misery  
+perry the platypus
