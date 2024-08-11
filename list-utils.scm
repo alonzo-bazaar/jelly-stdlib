@@ -15,8 +15,19 @@
 
 (define (lor a b) (or a b))
 (define (land a b) (and a b))
-(define (all lst) (reduce land lst #t))
-(define (any lst) (reduce lor lst #f))
+
+(define (complement pred)
+  (lambda (x) (not (pred x))))
+
+(define (any1 pred lst)
+  (do ((lst lst (cdr lst)))
+      ((or (null? lst)
+           (pred (car lst)))
+       (not (null? lst)))))
+
+(define (all1 pred lst)
+  ;; de morgan's
+  (not (any1 (complement pred) lst)))
 
 (define (zero? x) (= x 0))
 (define (even? x) (= (mod x 2) 0))
@@ -28,15 +39,6 @@
      (lambda (x) (if (pred x) (set! acc (cons x acc))))
      lst)
     (reverse acc)))
-
-(define (count pred &rest lsts)
-  (length (filter id (apply map (cons pred lsts)))))
-        
-(define (unfold-right f p g &rest maybe-tail)
-  (let lp ((seed seed) (lis tail))
-    (if (p seed) lis
-        (lp (g seed)
-            (cons (f seed) lis)))))
 
 (define (optional args default &rest n)
   (if (not (null? (cdr n))) (error "OPTIONAL : too many arguments"))

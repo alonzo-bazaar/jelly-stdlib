@@ -1,12 +1,12 @@
-;; what follows is a jelly port of the library proposed in srfi 1
+;;; what follows is a jelly port of the library proposed in srfi 1
 ;;; most of the present code has been taken from the reference implementation
 ;;; present in the srfi document
+;;; https://srfi.schemers.org/srfi-1/srfi-1-reference.scm
 ;;;
 ;;; some parts were rewritten for either clarity, efficiency (jelly has no tco
 ;;; which the reference implementations uses a lot, being scheme code)
 ;;; or compatibility reasons (jelly also has no continuations or macros)
 
-;;; 
 ;;; Copyright (c) 1998, 1999 by Olin Shivers. You may do as you please with
 ;;; this code as long as you do not remove this copyright notice or
 ;;; hold me liable for its use. Please send bug reports to shivers@ai.mit.edu.
@@ -357,7 +357,7 @@
 
 
 ;;; Like %CARS+CDRS, but blow up if any list is empty.
-(define (%cars+cdrs lists)
+(define (%cars+cdrs/no-test lists)
   (values (map car lists)
           (map cdr lists)))
 
@@ -455,4 +455,247 @@
        (ll lsts (map cdr ll)))
       ((null? l) lst)
     (set-car! l (apply fn (cons (car l) (map car ll))))))
+
+(define (find pred lst)
+  (do ((lst lst (cdr lst)))
+      ((or (null? lst) (pred (car lst))) (unless (null? lst) (car lst)))))
+
+(define (find-tail pred lst)
+  (do ((lst lst (cdr lst)))
+      ((or (null? lst) (pred (car lst))) (unless (null? lst) lst))))
+
+(define (take-while pred lst)
+  (let ((acc nil))
+    (do ((lst lst (cdr lst)))
+        ((or (null? lst)
+             (not (pred (car lst))))
+         (reverse acc))
+      (set! acc (cons (car lst) acc)))))
+
+(define (take-while! pred lst)
+  (if (pred (car lst))
+      (do ((lst lst (cdr lst)))
+          ((or (null? lst)
+               (not (pred (cadr lst))))
+           (begin
+             (unless (null? lst)
+               (set-cdr! lst nil))
+             lst)))
+      nil))
+
+
+;;; TODO ain't tested shit beyond here
+
+(define (span pred lis)
+  (check-arg procedure? pred span)
+  (values (take-while pred clist)
+          (drop-while pred clist)))
+
+(define (span! pred lis)
+  (check-arg procedure? pred span!)
+  (if (or (null-list? lis) (not (pred (car lis)))) (values nil lis)
+      (let ((suffix (let lp ((prev lis) (rest (cdr lis)))
+		      (if (null-list? rest) rest
+			  (let ((x (car rest)))
+			    (if (pred x) (lp rest (cdr rest))
+				(begin (set-cdr! prev nil)
+				       rest)))))))
+	(values lis suffix))))
+
+
+(define (break  pred lis) (span  (lambda (x) (not (pred x))) lis))
+(define (break! pred lis) (span! (lambda (x) (not (pred x))) lis))
+
+(define (anyzip pred lsts)
+  (do ((lsts lsts (map1 cdr lsts)))
+      ((or (any1 null? lsts)
+           (pred (map1 car lsts)))
+       (any1 (complement null?) lsts))))
+
+(define (any pred lst &rest lsts)
+  (if (null? lsts)
+      (any1 pred lst)
+      (anyzip pred (cons lst lsts))))
+
+(define (everyzip pred lsts)
+  (do ((lsts lsts (map1 cdr lsts)))
+      ((or (any1 null? lsts)
+           (not (pred (map1 car lsts))))
+       (any1 null? lsts))))
+
+(define (every pred lst &rest lsts)
+  (if (null? lsts)
+      (all1 pred lst)
+      (anyzip pred (cons lst lsts))))
+
+
+(define (indexzip pred lsts)
+  (do ((lsts lsts (map1 cdr lsts))
+       (index 0 (+ 1 index)))
+      ((or (any1 null? lsts)
+           (pred (map1 car lsts)))
+       (when (any1 (complement null?) lsts)
+         index))))
+
+(define (index1 pred lst)
+  (do ((lst lst (cdr lst))
+       (index 0 (+ 1 index)))
+      ((or (null? lst)
+           (pred (car lst)))
+       (when (not (null? lst))
+         index))))
+
+(define (list-index pred lst &rest lsts)
+  (if (null? lsts)
+      (any1 pred lst)
+      (anyzip pred (cons lst lsts))))
+
+(define (reverse lst)
+  (do ((lst lst (cdr lst))
+       (res nil (cons (car lst) res)))
+      ((null? lst) res)))
+
+;; todo
+(define reverse! reverse)
+
+;;; Lists-as-sets
+;;;;;;;;;;;;;;;;;
+
+;;; This is carefully tuned code; do not modify casually.
+;;; - It is careful to share storage when possible;
+;;; - Side-effecting code tries not to perform redundant writes.
+;;; - It tries to avoid linear-time scans in special cases where constant-time
+;;;   computations can be performed.
+;;; - It relies on similar properties from the other list-lib procs it calls.
+;;;   For example, it uses the fact that the implementations of MEMBER and
+;;;   FILTER in this source code share longest common tails between args
+;;;   and results to get structure sharing in the lset procedures.
+
+(define (%lset2<= = lis1 lis2) (every (lambda (x) (member x lis2 =)) lis1))
+
+(define (lset<= = &rest lists)
+  (check-arg procedure? = lset<=)
+  (or (not (pair? lists)) ; 0-ary case
+      (let lp ((s1 (car lists)) (rest (cdr lists)))
+	(or (not (pair? rest))
+	    (let ((s2 (car rest))  (rest (cdr rest)))
+	      (and (or (eq? s2 s1)	; Fast path
+		       (%lset2<= = s1 s2)) ; Real test
+		   (lp s2 rest)))))))
+
+(define (lset= = &rest lists)
+  (define (flip proc) (lambda (x y) (proc y x)))
+  (check-arg procedure? = lset=)
+  (or (not (pair? lists)) ; 0-ary case
+      (let lp ((s1 (car lists)) (rest (cdr lists)))
+        (or (not (pair? rest))
+            (let ((s2   (car rest))
+                  (rest (cdr rest)))
+              (and (or (eq? s1 s2)            ; Fast path
+                       (and (%lset2<= = s1 s2) ; Real test
+                            (%lset2<= (flip =) s2 s1)))
+                   (lp s2 rest)))))))
+
+(define (lset-adjoin = lis &rest elts)
+  (check-arg procedure? = lset-adjoin)
+  (fold (lambda (elt ans) (if (member elt ans =) ans (cons elt ans)))
+	lis elts))
+
+
+(define (lset-union = &rest lists)
+  (check-arg procedure? = lset-union)
+  (reduce (lambda (lis ans)		; Compute ANS + LIS.
+	    (cond ((null? lis) ans)	; Don't copy any lists
+		  ((null? ans) lis)	; if we don't have to.
+		  ((eq? lis ans) ans)
+		  (else
+		   (fold (lambda (elt ans) (if (any (lambda (x) (= x elt)) ans)
+					       ans
+					       (cons elt ans)))
+			 ans lis))))
+	  nil lists))
+
+(define (lset-union! = &rest lists)
+  (check-arg procedure? = lset-union!)
+  (reduce (lambda (lis ans)		; Splice new elts of LIS onto the front of ANS.
+	    (cond ((null? lis) ans)	; Don't copy any lists
+		  ((null? ans) lis)	; if we don't have to.
+		  ((eq? lis ans) ans)
+		  (else
+		   (pair-fold (lambda (pair ans)
+				(let ((elt (car pair)))
+				  (if (any (lambda (x) (= x elt)) ans)
+				      ans
+				      (begin (set-cdr! pair ans) pair))))
+			      ans lis))))
+	  nil lists))
+
+
+(define (lset-intersection = lis1 &rest lists)
+  (check-arg procedure? = lset-intersection)
+  (let ((lists (delete lis1 lists eq?))) ; Throw out any LIS1 vals.
+    (cond ((any null-list? lists) nil)		; Short cut
+	  ((null? lists)          lis1)		; Short cut
+	  (else (filter (lambda (x)
+			  (every (lambda (lis) (member x lis =)) lists))
+			lis1)))))
+
+(define (lset-intersection! = lis1 @rest lists)
+  (check-arg procedure? = lset-intersection!)
+  (let ((lists (delete lis1 lists eq?))) ; Throw out any LIS1 vals.
+    (cond ((any null-list? lists) nil)		; Short cut
+	  ((null? lists)          lis1)		; Short cut
+	  (else (filter! (lambda (x)
+			   (every (lambda (lis) (member x lis =)) lists))
+			 lis1)))))
+
+
+(define (lset-difference = lis1 &rest lists)
+  (check-arg procedure? = lset-difference)
+  (let ((lists (filter pair? lists)))	; Throw out empty lists.
+    (cond ((null? lists)     lis1)	; Short cut
+	  ((memq lis1 lists) nil)	; Short cut
+	  (else (filter (lambda (x)
+			  (every (lambda (lis) (not (member x lis =)))
+				 lists))
+			lis1)))))
+
+(define (lset-difference! = lis1 &rest lists)
+  (check-arg procedure? = lset-difference!)
+  (let ((lists (filter pair? lists)))	; Throw out empty lists.
+    (cond ((null? lists)     lis1)	; Short cut
+	  ((memq lis1 lists) nil)	; Short cut
+	  (else (filter! (lambda (x)
+			   (every (lambda (lis) (not (member x lis =)))
+				  lists))
+			 lis1)))))
+
+(define (lset-xor = lst1 lst2)
+  (lset-union (lset-difference lst1 lst2)
+              (lset-difference lst2 lst1)))
+
+(define (lset-xor = lst &rest lsts)
+  (cond ((null? lsts) lst)
+        ((null? (cdr lsts) (lst-xor1 lst (car lsts))))
+        (#t (lset-xor (car lst) (apply lset-xor (cons* = lst lsts))))))
+
+;; TODO
+(define lset-xor! lst-xor)
+
+(define (lset-diff+intersection = lis1 . lists)
+  (check-arg procedure? = lset-diff+intersection)
+  (cond ((every null-list? lists) (values lis1 nil))	; Short cut
+	((memq lis1 lists)        (values nil lis1))	; Short cut
+	(else (partition (lambda (elt)
+			   (not (any (lambda (lis) (member elt lis =))
+				     lists)))
+			 lis1))))
+(define (lset-diff+intersection! = lis1 . lists)
+  (check-arg procedure? = lset-diff+intersection!)
+  (cond ((every null-list? lists) (values lis1 nil))	; Short cut
+	((memq lis1 lists)        (values nil lis1))	; Short cut
+	(else (partition! (lambda (elt)
+			    (not (any (lambda (lis) (member elt lis =))
+				      lists)))
+			  lis1))))
 
