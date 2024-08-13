@@ -20,16 +20,6 @@
 
 (define reduce reduce-l)
 
-(define (all? check lst)
-  (reduce (lambda (a b) (and a b))
-          (map check lst)
-          #t))
-
-(define (any? check lst)
-  (reduce (lambda (a b) (or a b))
-          (map check lst)
-          #f))
-
 (define (allEqual? key lst)
   (let ((firstVal (key (car lst)))
         (otherVals (map key (cdr lst))))
