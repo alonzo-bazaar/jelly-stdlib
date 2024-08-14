@@ -251,10 +251,7 @@
 
     (define (split-at x k)
       (check-arg integer? k split-at)
-      (let recur ((lis x) (k k))
-        (if (zero? k) (values nil lis)
-	    (receive (prefix suffix) (recur (cdr lis) (- k 1))
-	      (values (cons (car lis) prefix) suffix)))))
+      (values (take x k) (drop x k)))
 
     (define (split-at! x k)
       (check-arg integer? k split-at!)
