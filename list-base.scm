@@ -1,11 +1,13 @@
-(define-library (base utils)
-  (export memq memv member
-          set-car! set-cdr!
+(define-library (list base)
+  (export set-car! set-cdr!
           pair? not-pair?
           first second third fourth fifth sixth seventh eight ninth tenth
+
           caar cadr cdar cddr
           caaar caadr cadar caddr cdaar cdadr cddar cdddr
-          caaaar caaadr caadar caaddr cadaar cadadr caddar cadddr cdaaar cdaadr cdadar cdaddr cddaar cddadr cdddar cddddr)
+          caaaar caaadr caadar caaddr cadaar cadadr caddar cadddr cdaaar cdaadr cdadar cdaddr cddaar cddadr cdddar cddddr
+
+          memq memv member)
   (begin
     (define (mem pred elt lst)
       (find-tail (curry pred elt) lst))

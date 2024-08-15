@@ -15,7 +15,9 @@
 ;;;     -Olin
 
 (define-library (list library)
-  (import (base utils))
+  (import (base base)
+          (list utils)
+          (utils for list library))
   (export xcons tree-copy make-list list-tabulate cons* list-copy
           proper-list? circular-list? dotted-list? not-pair? null-list? list=
           circular-list length+
@@ -316,7 +318,7 @@
 
     (define (filter pred lst)
       (let ((acc nil))
-        (dolistFn 
+        (forEach 
          (lambda (x) (if (pred x) (set! acc (cons x acc))))
          lst)
         (reverse acc)))
@@ -484,17 +486,6 @@
     (define (filter-map fn &rest lists)
       (filter id (apply map (cons fn lists))))
 
-    (define (map1 fn lst)
-      (do ((iter lst (cdr iter))
-           (acc nil (cons (fn (car iter)) acc)))
-          ((null? iter) (reverse acc))))
-
-    (define (map fn &rest lsts)
-      (let ((acc nil))
-        (do ((lsts lsts (map1 cdr lsts)))
-            ((all? null? lsts) (reverse acc))
-          (set! acc (cons (apply fn (map1 car lsts)) acc)))))
-
     ;; to be tested
     (define (map! fn lst &rest lsts)
       (do ((l lst (cdr l))
@@ -549,38 +540,6 @@
 
     (define (break  pred lis) (span  (lambda (x) (not (pred x))) lis))
     (define (break! pred lis) (span! (lambda (x) (not (pred x))) lis))
-
-    (define (any1 pred lst)
-      (do ((lst lst (cdr lst)))
-          ((or (null? lst)
-               (pred (car lst)))
-           (not (null? lst)))))
-
-    (define (every1 pred lst)
-      ;; de morgan's
-      (not (any1 (complement pred) lst)))
-
-    (define (anyzip pred lsts)
-      (do ((lsts lsts (map1 cdr lsts)))
-          ((or (any1 null? lsts)
-               (apply pred (map1 car lsts)))
-           (not (any1 null? lsts)))))
-
-    (define (any pred lst &rest lsts)
-      (if (null? lsts)
-          (any1 pred lst)
-          (anyzip pred (cons lst lsts))))
-
-    (define (everyzip pred lsts)
-      (do ((lsts lsts (map1 cdr lsts)))
-          ((or (any1 null? lsts)
-               (not (apply pred (map1 car lsts))))
-           (any1 null? lsts))))
-
-    (define (every pred lst &rest lsts)
-      (if (null? lsts)
-          (every1 pred lst)
-          (everyzip pred (cons lst lsts))))
 
     (define (indexzip pred lsts)
       (do ((lsts lsts (map1 cdr lsts))
