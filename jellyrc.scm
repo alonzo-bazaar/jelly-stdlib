@@ -3,19 +3,21 @@
 
 (loadFile "printing-base.scm")
 (import (printing base))
+;; (println "we print debugging the standard library, boy")
 
 (loadFile "base-base.scm")
-; (import (base base))
 
+;; srfi1 and its consequences
 (loadFile "list-base.scm")
-; (import (list base))
-
 (loadFile "utils-for-list-library.scm")
 (loadFile "list-library.scm")
-(import (list library))
 
 (loadFile "result-handling.scm")
-(import (result handling))
-
 (loadFile "sys.scm")
+
+;; import
+(import (base base))
+(import (list base))
+(import (list library))
+(import (result handling))
 (import (sys))
