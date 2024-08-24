@@ -1,25 +1,21 @@
-;; entrypoint for the stdlib
-
-;; for emacs inferior-scheme-mode
-(define load loadFile)
-
-;; load
-(loadFile "base-base.scm")
-
-;; srfi1 and its consequences
-(loadFile "list-base.scm")
-(loadFile "utils-for-list-library.scm")
-(loadFile "list-library.scm")
+;; entrypoint for the stdlib during normal usage
+(define load loadFile) ;; for emacs inferior-scheme-mode
 
 (loadFile "printing-base.scm")
-
-(loadFile "result-handling.scm")
-
-;; import
-(import (base base))
 (import (printing base))
 
-(import (list base))
+(loadFile "base-base.scm")
+; (import (base base))
+
+(loadFile "list-base.scm")
+; (import (list base))
+
+(loadFile "utils-for-list-library.scm")
+(loadFile "list-library.scm")
 (import (list library))
 
+(loadFile "result-handling.scm")
 (import (result handling))
+
+(loadFile "sys.scm")
+(import (sys))

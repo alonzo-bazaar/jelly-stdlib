@@ -16,10 +16,10 @@
 
 (define-library (list library)
   (import (base base)
-          (list utils)
+          (list base)
           (utils for list library))
   (export xcons tree-copy make-list list-tabulate cons* list-copy
-          proper-list? circular-list? dotted-list? not-pair? null-list? list=
+          proper-list? circular-list? dotted-list? null-list? list=
           circular-list length+
           iota
           car+cdr
@@ -38,7 +38,7 @@
           append-map append-map! map! pair-for-each filter-map map-in-order
           filter  partition  remove
           filter! partition! remove!
-          find find-tail any every list-index
+          find find-tail list-index
           take-while drop-while take-while!
           span break span! break!
           delete delete!

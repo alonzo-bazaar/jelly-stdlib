@@ -3,13 +3,27 @@
   ;; because loading the whole thing would be very expensive
   (export map any every
           map1 any1 every1
+          length
           forEach
-          id)
+          id nth nthCdr)
   (begin
+    (define (nthCdr lst n)
+      (do ((lst lst (cdr lst))
+           (n n (- n 1)))
+          ((= n 0) lst)))
+
+    (define (nth lst n)
+      (car (nthCdr lst n)))
+
     (define (forEach fn lst)
       (do ((l lst (cdr l)))
           ((null? l) nil)
         (fn (car l))))
+
+    (define (length lst)
+      (do ((l lst (cdr l))
+           (len 0 (+ 1 len)))
+          ((null? l) len)))
 
     (define (map1 fn lst)
       (do ((iter lst (cdr iter))

@@ -1,4 +1,5 @@
 (define-library (utils for list library)
+  (import (base base))
   (export procedure?
           complement
           zero? even? odd?

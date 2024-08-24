@@ -1,4 +1,5 @@
 (define-library (list base)
+  (import (base base))
   (export set-car! set-cdr!
           pair? not-pair?
           first second third fourth fifth sixth seventh eight ninth tenth
@@ -38,7 +39,6 @@
     (define (eight x)   (nth x 7))
     (define (ninth x)   (nth x 8))
     (define (tenth x)   (nth x 9))
-
 
     (define (caar   x) (car (car x)))
     (define (cadr   x) (car (cdr x)))
